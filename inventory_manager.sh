@@ -1,6 +1,7 @@
 #!/bin/bash
 while true; do
     echo "Welcome to the Inventory Manager!";
+    echo "testing";
     echo "==============================="
     echo "1. View Inventory"
     echo "2. Add a New Product"
