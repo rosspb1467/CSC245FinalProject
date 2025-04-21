@@ -1,4 +1,16 @@
 #!/bin/bash
+if [ "$#" -eq 0 ]; then
+    echo "Error: No arguments given."
+    exit 1
+fi
+
+file="$1"
+if [ ! -f "$file" ]; then
+    echo "Name,Grade" >"$file"
+    echo "Created new file: $file"
+    echo "Using new file: $file"
+fi
+
 while true; do
     echo "Welcome to the Inventory Manager!";
     echo "==============================="
