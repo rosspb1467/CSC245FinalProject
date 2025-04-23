@@ -6,10 +6,65 @@ fi
 
 file="$1"
 if [ ! -f "$file" ]; then
-    echo "Name,Grade" >"$file"
+    echo "Name,ID,Quantity,Price" > "$file"
     echo "Created new file: $file"
     echo "Using new file: $file"
 fi
+
+view_inv() {
+    echo
+    echo "Current Inventory"
+    echo "==============================="
+    column -s, -t < "$file"
+    echo "==============================="
+}
+
+add_product() {
+    while true; do
+        read -p "Enter Product Name: " prod
+        if [[ "$prod" =~ ^[a-zA-Z]*$ ]]; then
+            if grep -iq "^$name," "$file"; then
+                echo "Product already exists."
+            else
+                break
+            fi
+        else
+            echo "Invalid name"
+        fi
+    done
+    while true; do
+        read -p "Enter Product ID: " id
+        if [[ "$id" =~ ^[A-Za-z0-9_-]+$ ]]; then
+            if grep -iq "^$id," "$file"; then
+                echo "ID '$id' already exists. Try another."
+            else
+                break
+            fi
+        else
+            echo "Invalid ID"
+        fi
+    done
+        while true; do
+        read -p "Enter Quantity: " qty
+        if [[ "$qty" =~ ^[0-9]+$ ]]; then
+            break
+        else
+            echo "Invalid quantity"
+        fi
+    done
+        while true; do
+        read -p "Enter Price of Product: " price
+        if [[ "$price" =~ ^[0-9]+(\.[0-9]{1,2})?$ ]]; then
+            break
+        else
+            echo "Invalid price"
+        fi
+    done
+
+    echo "$prod,$id,$qty,$price" >> "$file"
+    echo "Added product: $prod with ID of $id with amount of $qty priced at $price"
+    echo "==============================="
+}
 
 while true; do
     echo "Welcome to the Inventory Manager!";
