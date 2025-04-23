@@ -95,4 +95,3 @@ while true; do
     *) echo "Invalid option. Try again" ;;
     esac
 done
-echo "Testing"
