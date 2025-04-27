@@ -160,13 +160,32 @@ delete_product() {
     echo "==============================="
 }
 
-save_load_inv_csv() {
+# save_load_inv_csv() {
 
+# }
+
+inv_report() {
+    echo
+    read -p "Would you like to export the current inventory as a report? (Y/N): " export_choice
+    if [[ "$export_choice" =~ ^[Yy]$ ]]; then
+        read -p "Export as Text file or CSV file? Enter 1 or 2: " file_type
+        read -p "Enter filename to save: " filename
+
+        if [ "$file_type" == "1" ]; then
+            column -s, -t < "$file" > "${filename}.txt"
+            echo "Inventory exported to ${filename}.txt"
+        elif [ "$file_type" == "2" ]; then
+            cp "$file" "${filename}.csv"
+            echo "Inventory exported to ${filename}.csv"
+        else
+            echo "Invalid selection. Report not exported."
+        fi
+    else
+        echo "Export cancelled."
+    fi
+    echo "==============================="
 }
 
-inv_report () {
-    
-}
 
 while true; do
     echo "Welcome to the Inventory Manager!";
