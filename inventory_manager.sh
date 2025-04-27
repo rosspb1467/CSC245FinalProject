@@ -148,7 +148,7 @@ delete_product() {
     read -p "Enter product ID to delete: " id
     if grep -q ",$id," "$file"; then
         read -p "Are you sure you want to delete this product? (y/n): " confirm
-        if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
             sed -i "/,$id,/d" "$file"
             echo "Product deleted successfully."
         else
@@ -168,7 +168,7 @@ inv_report() {
     echo
     read -p "Would you like to export the current inventory as a report? (Y/N): " export_choice
     if [[ "$export_choice" =~ ^[Yy]$ ]]; then
-        read -p "Export as Text file or CSV file? Enter 1 or 2: " file_type
+        read -p "Export as Text file or CSV file? Enter 1 for Text or 2 for CSV: " file_type
         read -p "Enter filename to save: " filename
 
         if [ "$file_type" == "1" ]; then
