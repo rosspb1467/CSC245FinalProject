@@ -21,22 +21,22 @@ view_inv() {
 
 add_product() {
     while true; do
-        read -p "Enter Product Name: " prod
-        if [[ "$prod" =~ ^[a-zA-Z]*$ ]]; then
-            if grep -iq "^$name," "$file"; then
-                echo "Product already exists."
+        read -p "Enter product name: " prod
+        if [[ "$prod" =~ ^[a-zA-Z0-9]+( [a-zA-Z]+)*$ ]]; then
+            if grep -iq "^$prod," "$file"; then
+                echo "Product $prod already exists. Try another"
             else
                 break
             fi
         else
-            echo "Invalid name"
+            echo "Invalid name."
         fi
     done
     while true; do
         read -p "Enter Product ID: " id
         if [[ "$id" =~ ^[A-Za-z0-9_-]+$ ]]; then
             if grep -iq "^$id," "$file"; then
-                echo "ID '$id' already exists. Try another."
+                echo "ID $id already exists. Try another."
             else
                 break
             fi
@@ -44,20 +44,20 @@ add_product() {
             echo "Invalid ID"
         fi
     done
-        while true; do
-        read -p "Enter Quantity: " qty
+    while true; do
+        read -p "Enter quantity: " qty
         if [[ "$qty" =~ ^[0-9]+$ ]]; then
             break
         else
-            echo "Invalid quantity"
+            echo "Invalid quantity."
         fi
     done
-        while true; do
-        read -p "Enter Price of Product: " price
+    while true; do
+        read -p "Enter price: " price
         if [[ "$price" =~ ^[0-9]+(\.[0-9]{1,2})?$ ]]; then
             break
         else
-            echo "Invalid price"
+            echo "Invalid price."
         fi
     done
 
@@ -65,6 +65,40 @@ add_product() {
     echo "Added product: $prod with ID of $id with amount of $qty priced at $price"
     echo "==============================="
 }
+
+update_stock() {
+    read -p "Enter product ID to update stock: " prodID
+    if grep -q ",$prodID," "$file"; then
+        while true; do
+            read -p "Enter new amount: " stock
+            if [[ "$stock" =~ ^[0-9]+$ ]]; then
+                break
+            else
+                echo "Invalid amount."
+            fi
+        done
+        sed -i "/,$prodID,/s/^\([^,]*,[^,]*,\)[^,]*/\1$stock/" "$file"
+        echo "Product ID $prodID's quantity has been updated to $stock."
+    else
+        echo "Product ID $prodID not found."
+    fi
+    echo "==============================="
+}
+
+search_products() {
+    read -p "Enter product ID or name to search: " search
+    match=$(grep -E "^[^,]*,$search(,|$)" "$file")
+    if [ -n "$match" ]; then
+        echo "Product Found"
+        echo "==============================="
+        echo "$match" | column -s, -t
+    else
+        echo "Product not found."
+    fi
+    echo "==============================="
+}
+
+
 
 while true; do
     echo "Welcome to the Inventory Manager!";
