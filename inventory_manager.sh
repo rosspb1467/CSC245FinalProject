@@ -87,18 +87,86 @@ update_stock() {
 
 search_products() {
     read -p "Enter product ID or name to search: " search
-    match=$(grep -E "^[^,]*,$search(,|$)" "$file")
+    echo "Search Results"
+    echo "==============================="
+    if [[ "$search" =~ ^[0-9]+$ ]]; then
+        match=$(awk -F',' -v id="$search" '$2 == id {print}' "$file")
+    else
+        match=$(awk -F',' -v name="$search" 'tolower($1) == tolower(name) {print}' "$file")
+    fi
+
     if [ -n "$match" ]; then
-        echo "Product Found"
-        echo "==============================="
         echo "$match" | column -s, -t
     else
         echo "Product not found."
     fi
+    echo "==============================="  
+}
+
+low_stock_items() {
+    read -p "Enter the stock threshold: " threshold
+    if [[ "$threshold" =~ ^[0-9]+$ ]]; then
+        echo "Products with stock below $threshold"
+        echo "==============================="
+        printf "%-7s %-7s %-10s %-10s\n" "Name" "ID" "Quantity" "Price"
+        tail -n +2 "$file" | while IFS=',' read -r name id quantity price; do
+            quantity=${quantity//[$'\r\n ']/}
+            if [[ "$quantity" =~ ^[0-9]+$ && "$quantity" -lt "$threshold" ]]; then
+                printf "%-7s %-7s %-10s \$%-10s\n" "$name" "$id" "$quantity" "$price"
+            fi
+        done
+    else
+        echo "Invalid input."
+    fi
     echo "==============================="
 }
 
+record_sale() {
+    read -p "Enter product ID for sale: " sale
+    if grep -q ",$sale," "$file"; then
+        read -p "Enter quantity sold: " sold
+        if [[ "$sold" =~ ^[0-9]+$ ]]; then
+            IFS=',' read -r name id_found quantity price <<< "$(grep ",$sale," "$file")"
+            if [ "$sold" -le "$quantity" ]; then
+                new_quantity=$((quantity - sold))
+                sed -i "/,$sale,/c\\$name,$id_found,$new_quantity,$price" "$file"
+                echo "Sale recorded: Sold $sold units of $name."
+            else
+                echo "Error: Not enough stock available."
+            fi
+        else
+            echo "Invalid quantity."
+        fi
+    else
+        echo "Product ID not found."
+    fi
+    echo "==============================="
+}
 
+delete_product() {
+    echo
+    read -p "Enter product ID to delete: " id
+    if grep -q ",$id," "$file"; then
+        read -p "Are you sure you want to delete this product? (y/n): " confirm
+        if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+            sed -i "/,$id,/d" "$file"
+            echo "Product deleted successfully."
+        else
+            echo "Deletion canceled."
+        fi
+    else
+        echo "Product ID not found."
+    fi
+    echo "==============================="
+}
+
+save_load_inv_csv() {
+
+}
+
+inv_report () {
+    
+}
 
 while true; do
     echo "Welcome to the Inventory Manager!";
