@@ -110,6 +110,7 @@ update_stock() {
 # Function that searchs for products by name or ID
 search_products() {
     read -p "Enter product ID or name to search: " search
+    echo
     echo "Search Results"
     echo "==============================="
     # Search is based on whether input is a number or text for ID or name
@@ -120,30 +121,27 @@ search_products() {
     fi
     # If search finds a match, displays the product in a column with headings
     if [ -n "$match" ]; then
-        echo "Name,ID,Quantity,Price" | column -s, -t
-        echo "$match" | column -s, -t
+        {
+            echo "Name,ID,Quantity,Price"
+            echo "$match"
+        } | column -s, -t
     else
         echo "Product not found."
     fi
-    echo "==============================="  
+    echo "==============================="
 }
 
 # Function that displays products that are low on stock
 low_stock_items() {
     read -p "Enter the stock threshold: " threshold
+    echo
     if [[ "$threshold" =~ ^[0-9]+$ ]]; then
         echo "Products with stock below $threshold"
         echo "==============================="
-        # Displays formatted header
-        printf "%-13s %-10s %-10s %-10s\n" "Name" "ID" "Quantity" "Price"
-        # Then process and print matching products
-        tail -n +2 "$file" | while IFS=',' read -r name id quantity price; do
-            # Froamt output to fit with the formatted header
-            quantity=${quantity//[$'\r\n ']/}
-            if [[ "$quantity" =~ ^[0-9]+$ && "$quantity" -lt "$threshold" ]]; then
-                printf "%-13s %-10s %-10s \$%-10s\n" "$name" "$id" "$quantity" "$price"
-            fi
-        done
+        {
+            echo "Name,ID,Quantity,Price"
+            tail -n +2 "$file" | awk -F',' -v thresh="$threshold" '$3 < thresh {print $0}'
+        } | column -s, -t
     else
         echo "Invalid input."
     fi
