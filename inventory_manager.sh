@@ -160,32 +160,70 @@ delete_product() {
     echo "==============================="
 }
 
-# save_load_inv_csv() {
-
-# }
+save_load_inv_csv() {
+    echo "Save/Load Inventory"
+    echo "==============================="
+    while true; do
+        echo "1. Save Inventory"
+        echo "2. Load Inventory"
+        read -p "Enter your choice (1 or 2): " option
+        if [ "$option" == "1" ]; then
+            cp "$file" "inventory_backup.csv"
+            echo "Inventory saved as inventory_backup.csv."
+            break
+        elif [ "$option" == "2" ]; then
+            while true; do
+                read -p "Enter the CSV filename to load from: " loadfile
+                if [[ "$loadfile" == *.csv ]]; then
+                    if [ -f "$loadfile" ]; then
+                        cp "$loadfile" "$file"
+                        echo "Inventory loaded from $loadfile."
+                        break 2
+                    else
+                        echo "File '$loadfile' not found. Please try again."
+                    fi
+                else
+                    echo "Invalid file type. Only .csv files are allowed"
+                fi
+            done
+        else
+            echo "Invalid option. Please try again."
+        fi
+    done
+    echo "==============================="
+}
 
 inv_report() {
-    echo
-    read -p "Would you like to export the current inventory as a report? (Y/N): " export_choice
+    while true; do
+        read -p "Would you like to export the current inventory as a report file? (y/n): " export_choice
+        if [[ "$export_choice" =~ ^[YyNn]$ ]]; then
+            break
+        else
+            echo "Invalid input."
+        fi
+    done
     if [[ "$export_choice" =~ ^[Yy]$ ]]; then
-        read -p "Export as Text file or CSV file? Enter 1 for Text or 2 for CSV: " file_type
+        while true; do
+            read -p "Enter 1 for Text or 2 for CSV file: " file_type
+            if [ "$file_type" == "1" ] || [ "$file_type" == "2" ]; then
+                break
+            else
+                echo "Invalid selection."
+            fi
+        done
         read -p "Enter filename to save: " filename
-
         if [ "$file_type" == "1" ]; then
             column -s, -t < "$file" > "${filename}.txt"
             echo "Inventory exported to ${filename}.txt"
-        elif [ "$file_type" == "2" ]; then
+        else
             cp "$file" "${filename}.csv"
             echo "Inventory exported to ${filename}.csv"
-        else
-            echo "Invalid selection. Report not exported."
         fi
     else
         echo "Export cancelled."
     fi
     echo "==============================="
 }
-
 
 while true; do
     echo "Welcome to the Inventory Manager!";
