@@ -1,0 +1,11 @@
+Name                 ID  Quantity  Price
+Tomatos              2   20        4.25
+Doritos              3   40        10.00
+Skittles             4   15        2.50
+Arizona Tea          5   8         0.99
+Avocados             6   85        8.50
+Samsung TV           7   4         300.00
+Hershey's Chocolate  8   10        3.99
+Chips Ahoy!          9   10        2.99
+Dr.Pepper            10  8         1.99
+7-Up Soda            11  4         2.99
