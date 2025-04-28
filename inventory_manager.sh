@@ -22,9 +22,9 @@ view_inv() {
 add_product() {
     while true; do
         read -p "Enter product name: " prod
-        if [[ "$prod" =~ ^[a-zA-Z0-9]+( [a-zA-Z]+)*$ ]]; then
+        if [[ "$prod" =~ ^[a-zA-Z0-9[:space:][:punct:]]+$ ]]; then
             if grep -iq "^$prod," "$file"; then
-                echo "Product $prod already exists. Try another"
+                echo "Product $prod already exists. Try another."
             else
                 break
             fi
@@ -35,13 +35,13 @@ add_product() {
     while true; do
         read -p "Enter Product ID: " id
         if [[ "$id" =~ ^[A-Za-z0-9_-]+$ ]]; then
-            if grep -iq "^$id," "$file"; then
+            if awk -F',' -v id="$id" '$2 == id {found=1} END {exit !found}' "$file"; then
                 echo "ID $id already exists. Try another."
             else
                 break
             fi
         else
-            echo "Invalid ID"
+            echo "Invalid ID."
         fi
     done
     while true; do
@@ -67,20 +67,27 @@ add_product() {
 }
 
 update_stock() {
-    read -p "Enter product ID to update stock: " prodID
+    while true; do
+        read -p "Enter product ID to update stock: " prodID
+        if [[ "$prodID" =~ ^[0-9]+$ ]]; then
+            break
+        else
+            echo "Invalid Product ID. Please try again."
+        fi
+    done
     if grep -q ",$prodID," "$file"; then
         while true; do
             read -p "Enter new amount: " stock
             if [[ "$stock" =~ ^[0-9]+$ ]]; then
                 break
             else
-                echo "Invalid amount."
+                echo "Invalid amount. Only numbers allowed."
             fi
         done
         sed -i "/,$prodID,/s/^\([^,]*,[^,]*,\)[^,]*/\1$stock/" "$file"
         echo "Product ID $prodID's quantity has been updated to $stock."
     else
-        echo "Product ID $prodID not found."
+        echo "Product ID not found."
     fi
     echo "==============================="
 }
@@ -96,6 +103,7 @@ search_products() {
     fi
 
     if [ -n "$match" ]; then
+        echo "Name,ID,Quantity,Price" | column -s, -t
         echo "$match" | column -s, -t
     else
         echo "Product not found."
@@ -108,11 +116,11 @@ low_stock_items() {
     if [[ "$threshold" =~ ^[0-9]+$ ]]; then
         echo "Products with stock below $threshold"
         echo "==============================="
-        printf "%-7s %-7s %-10s %-10s\n" "Name" "ID" "Quantity" "Price"
+        printf "%-13s %-10s %-10s %-10s\n" "Name" "ID" "Quantity" "Price"
         tail -n +2 "$file" | while IFS=',' read -r name id quantity price; do
             quantity=${quantity//[$'\r\n ']/}
             if [[ "$quantity" =~ ^[0-9]+$ && "$quantity" -lt "$threshold" ]]; then
-                printf "%-7s %-7s %-10s \$%-10s\n" "$name" "$id" "$quantity" "$price"
+                printf "%-13s %-10s %-10s \$%-10s\n" "$name" "$id" "$quantity" "$price"
             fi
         done
     else
@@ -122,21 +130,31 @@ low_stock_items() {
 }
 
 record_sale() {
-    read -p "Enter product ID for sale: " sale
-    if grep -q ",$sale," "$file"; then
-        read -p "Enter quantity sold: " sold
-        if [[ "$sold" =~ ^[0-9]+$ ]]; then
-            IFS=',' read -r name id_found quantity price <<< "$(grep ",$sale," "$file")"
-            if [ "$sold" -le "$quantity" ]; then
-                new_quantity=$((quantity - sold))
-                sed -i "/,$sale,/c\\$name,$id_found,$new_quantity,$price" "$file"
-                echo "Sale recorded: Sold $sold units of $name."
-            else
-                echo "Error: Not enough stock available."
-            fi
+    while true; do
+        read -p "Enter product ID for sale: " sale
+        if [[ "$sale" =~ ^[0-9]+$ ]]; then
+            break
         else
-            echo "Invalid quantity."
+            echo "Invalid Product ID. Please try again."
         fi
+    done
+    if grep -q ",$sale," "$file"; then
+        while true; do
+            read -p "Enter quantity sold: " sold
+            if [[ "$sold" =~ ^[0-9]+$ ]]; then
+                IFS=',' read -r name id_found quantity price <<< "$(grep ",$sale," "$file")"
+                if [ "$sold" -le "$quantity" ]; then
+                    new_quantity=$((quantity - sold))
+                    sed -i "/,$sale,/c\\$name,$id_found,$new_quantity,$price" "$file"
+                    echo "Sale recorded: Sold $sold units of $name."
+                    break
+                else
+                    echo "Error: Not enough stock available."
+                fi
+            else
+                echo "Invalid quantity. Please try again."
+            fi
+        done
     else
         echo "Product ID not found."
     fi
@@ -144,16 +162,28 @@ record_sale() {
 }
 
 delete_product() {
-    echo
-    read -p "Enter product ID to delete: " id
-    if grep -q ",$id," "$file"; then
-        read -p "Are you sure you want to delete this product? (y/n): " confirm
-        if [[ "$confirm" =~ ^[Yy]$ ]]; then
-            sed -i "/,$id,/d" "$file"
-            echo "Product deleted successfully."
+    while true; do
+        read -p "Enter product ID to delete: " id
+        if [[ "$id" =~ ^[0-9]+$ ]]; then
+            break
         else
-            echo "Deletion canceled."
+            echo "Invalid ID."
         fi
+    done
+    if grep -q ",$id," "$file"; then
+        while true; do
+            read -p "Are you sure you want to delete this product? (y/n): " confirm
+            if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                sed -i "/,$id,/d" "$file"
+                echo "Product deleted successfully."
+                break
+            elif [[ "$confirm" =~ ^[Nn]$ ]]; then
+                echo "Deletion canceled."
+                break
+            else
+                echo "Invalid input. Please try again."
+            fi
+        done
     else
         echo "Product ID not found."
     fi
@@ -225,6 +255,7 @@ inv_report() {
     echo "==============================="
 }
 
+# Main Menu Choices
 while true; do
     echo "Welcome to the Inventory Manager!";
     echo "==============================="
