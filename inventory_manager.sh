@@ -1,9 +1,11 @@
 #!/bin/bash
+# Displays an error when no argument is given
 if [ "$#" -eq 0 ]; then
     echo "Error: No arguments given."
     exit 1
 fi
 
+# If a file is given as an argument doesn't exist, create it
 file="$1"
 if [ ! -f "$file" ]; then
     echo "Name,ID,Quantity,Price" > "$file"
@@ -11,6 +13,7 @@ if [ ! -f "$file" ]; then
     echo "Using new file: $file"
 fi
 
+# Displays the current inventory of products
 view_inv() {
     echo
     echo "Current Inventory"
@@ -19,10 +22,13 @@ view_inv() {
     echo "==============================="
 }
 
+# Function to add new products into the inventory with headings
 add_product() {
     while true; do
         read -p "Enter product name: " prod
+        # Validate product names with POSIX Expressions allowing special characters
         if [[ "$prod" =~ ^[a-zA-Z0-9[:space:][:punct:]]+$ ]]; then
+            # Checks if product already exists
             if grep -iq "^$prod," "$file"; then
                 echo "Product $prod already exists. Try another."
             else
@@ -34,7 +40,9 @@ add_product() {
     done
     while true; do
         read -p "Enter Product ID: " id
+        # Validate product IDs
         if [[ "$id" =~ ^[A-Za-z0-9_-]+$ ]]; then
+            # Checks if ID inputted already exists
             if awk -F',' -v id="$id" '$2 == id {found=1} END {exit !found}' "$file"; then
                 echo "ID $id already exists. Try another."
             else
@@ -46,6 +54,7 @@ add_product() {
     done
     while true; do
         read -p "Enter quantity: " qty
+        # Validate quantity input allowing only numbers
         if [[ "$qty" =~ ^[0-9]+$ ]]; then
             break
         else
@@ -54,6 +63,7 @@ add_product() {
     done
     while true; do
         read -p "Enter price: " price
+        # Validate price input allowing only numbers and must be decimal
         if [[ "$price" =~ ^[0-9]+(\.[0-9]{1,2})?$ ]]; then
             break
         else
@@ -61,20 +71,24 @@ add_product() {
         fi
     done
 
+    # Adds products to the CSV file with headings
     echo "$prod,$id,$qty,$price" >> "$file"
     echo "Added product: $prod with ID of $id with amount of $qty priced at $price"
     echo "==============================="
 }
 
+# Function that updates the stock quantity for a product
 update_stock() {
     while true; do
         read -p "Enter product ID to update stock: " prodID
+        # Validate product ID input only allowing numbers
         if [[ "$prodID" =~ ^[0-9]+$ ]]; then
             break
         else
             echo "Invalid Product ID. Please try again."
         fi
     done
+    # Checks if product ID exists
     if grep -q ",$prodID," "$file"; then
         while true; do
             read -p "Enter new amount: " stock
@@ -84,6 +98,7 @@ update_stock() {
                 echo "Invalid amount. Only numbers allowed."
             fi
         done
+        # Updates product quantity by replacing the old qauntity with a new one
         sed -i "/,$prodID,/s/^\([^,]*,[^,]*,\)[^,]*/\1$stock/" "$file"
         echo "Product ID $prodID's quantity has been updated to $stock."
     else
@@ -92,16 +107,18 @@ update_stock() {
     echo "==============================="
 }
 
+# Function that searchs for products by name or ID
 search_products() {
     read -p "Enter product ID or name to search: " search
     echo "Search Results"
     echo "==============================="
+    # Search is based on whether input is a number or text for ID or name
     if [[ "$search" =~ ^[0-9]+$ ]]; then
         match=$(awk -F',' -v id="$search" '$2 == id {print}' "$file")
     else
         match=$(awk -F',' -v name="$search" 'tolower($1) == tolower(name) {print}' "$file")
     fi
-
+    # If search finds a match, displays the product in a column with headings
     if [ -n "$match" ]; then
         echo "Name,ID,Quantity,Price" | column -s, -t
         echo "$match" | column -s, -t
@@ -111,13 +128,17 @@ search_products() {
     echo "==============================="  
 }
 
+# Function that displays products that are low on stock
 low_stock_items() {
     read -p "Enter the stock threshold: " threshold
     if [[ "$threshold" =~ ^[0-9]+$ ]]; then
         echo "Products with stock below $threshold"
         echo "==============================="
+        # Displays formatted header
         printf "%-13s %-10s %-10s %-10s\n" "Name" "ID" "Quantity" "Price"
+        # Then process and print matching products
         tail -n +2 "$file" | while IFS=',' read -r name id quantity price; do
+            # Froamt output to fit with the formatted header
             quantity=${quantity//[$'\r\n ']/}
             if [[ "$quantity" =~ ^[0-9]+$ && "$quantity" -lt "$threshold" ]]; then
                 printf "%-13s %-10s %-10s \$%-10s\n" "$name" "$id" "$quantity" "$price"
@@ -129,20 +150,25 @@ low_stock_items() {
     echo "==============================="
 }
 
+# Function that records a sale and updates the stock of whatever product was sold
 record_sale() {
     while true; do
         read -p "Enter product ID for sale: " sale
+        # Validate prodID input allowing only numbers
         if [[ "$sale" =~ ^[0-9]+$ ]]; then
             break
         else
             echo "Invalid Product ID. Please try again."
         fi
     done
+    # Checks if product exists
     if grep -q ",$sale," "$file"; then
         while true; do
             read -p "Enter quantity sold: " sold
             if [[ "$sold" =~ ^[0-9]+$ ]]; then
+                # Extract the current quantity of product inputted
                 IFS=',' read -r name id_found quantity price <<< "$(grep ",$sale," "$file")"
+                # Checks if product has enough current stock
                 if [ "$sold" -le "$quantity" ]; then
                     new_quantity=$((quantity - sold))
                     sed -i "/,$sale,/c\\$name,$id_found,$new_quantity,$price" "$file"
@@ -161,15 +187,18 @@ record_sale() {
     echo "==============================="
 }
 
+# Function that deletes a product from the inventory
 delete_product() {
     while true; do
         read -p "Enter product ID to delete: " id
+        # Validate prodID input allowing only numbers
         if [[ "$id" =~ ^[0-9]+$ ]]; then
             break
         else
             echo "Invalid ID."
         fi
     done
+    # Checks if product exists
     if grep -q ",$id," "$file"; then
         while true; do
             read -p "Are you sure you want to delete this product? (y/n): " confirm
@@ -190,6 +219,7 @@ delete_product() {
     echo "==============================="
 }
 
+# Function that allows saving of current inventory to a backup file or load from an existing CSV file
 save_load_inv_csv() {
     echo "Save/Load Inventory"
     echo "==============================="
@@ -204,6 +234,7 @@ save_load_inv_csv() {
         elif [ "$option" == "2" ]; then
             while true; do
                 read -p "Enter the CSV filename to load from: " loadfile
+                # Only allows .csv files to be inputted
                 if [[ "$loadfile" == *.csv ]]; then
                     if [ -f "$loadfile" ]; then
                         cp "$loadfile" "$file"
@@ -223,6 +254,7 @@ save_load_inv_csv() {
     echo "==============================="
 }
 
+# Function that allows exporting of inventory report to a text or csv file
 inv_report() {
     while true; do
         read -p "Would you like to export the current inventory as a report file? (y/n): " export_choice
