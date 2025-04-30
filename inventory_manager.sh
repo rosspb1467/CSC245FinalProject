@@ -5,8 +5,14 @@ if [ "$#" -eq 0 ]; then
     exit 1
 fi
 
-# If a file is given as an argument doesn't exist, create it
 file="$1"
+# Checks if a csv or txt file was inputted as the argument
+if [[ "$file" != *.csv && "$file" != *.txt ]]; then
+    echo "Error: Only .csv or .txt files allowed"
+    exit 1
+fi
+
+# If a file is given as an argument doesn't exist, create it
 if [ ! -f "$file" ]; then
     echo "Name,ID,Quantity,Price" > "$file"
     echo "Created new file: $file"
