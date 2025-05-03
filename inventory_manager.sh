@@ -6,9 +6,9 @@ if [ "$#" -eq 0 ]; then
 fi
 
 file="$1"
-# Checks if a csv or txt file was inputted as the argument
-if [[ "$file" != *.csv && "$file" != *.txt ]]; then
-    echo "Error: Only .csv or .txt files allowed"
+# Checks if a csv, txt, or xls file was inputted as the argument
+if [[ "$file" != *.csv && "$file" != *.xls ]]; then
+    echo "Error: Only .csv or .xls files allowed"
     exit 1
 fi
 
@@ -166,12 +166,12 @@ record_sale() {
         fi
     done
     # Checks if product exists
-    if grep -q ",$sale," "$file"; then
+    if awk -F',' -v id="$sale" '$2 == id {found=1} END {exit !found}' "$file"; then
         while true; do
             read -p "Enter quantity sold: " sold
             if [[ "$sold" =~ ^[0-9]+$ ]]; then
                 # Extract the current quantity of product inputted
-                IFS=',' read -r name id_found quantity price <<< "$(grep ",$sale," "$file")"
+                IFS=',' read -r name id_found quantity price <<< "$(awk -F',' -v id="$sale" '$2 == id {print}' "$file")"
                 # Checks if product has enough current stock
                 if [ "$sold" -le "$quantity" ]; then
                     new_quantity=$((quantity - sold))
@@ -223,7 +223,7 @@ delete_product() {
     echo "==============================="
 }
 
-# Function that allows saving of current inventory to a backup file or load from an existing CSV file
+# Function that allows saving of current inventory to a backup file or load from an existing CSV or XLS file
 save_load_inv_csv() {
     echo "Save/Load Inventory"
     echo "==============================="
@@ -232,14 +232,23 @@ save_load_inv_csv() {
         echo "2. Load Inventory"
         read -p "Enter your choice (1 or 2): " option
         if [ "$option" == "1" ]; then
-            cp "$file" "inventory_backup.csv"
-            echo "Inventory saved as inventory_backup.csv."
+            while true; do
+                read -p "Choose file type to save as (.csv or .xls): " file_type
+                # Only allows .csv or .xls files to be saved to
+                if [[ "$file_type" == ".csv" || "$file_type" == ".xls" ]]; then
+                    cp "$file" "inventory_backup$file_type"
+                    echo "Inventory saved as inventory_backup$file_type."
+                    break
+                else
+                    echo "Invalid file type."
+                fi
+            done
             break
         elif [ "$option" == "2" ]; then
             while true; do
-                read -p "Enter the CSV filename to load from: " loadfile
-                # Only allows .csv files to be inputted
-                if [[ "$loadfile" == *.csv ]]; then
+                read -p "Enter the filename to load from (.csv or .xls only): " loadfile
+                # Only allows .csv or .xls files to be loaded from
+                if [[ "$loadfile" == *.csv || "$loadfile" == *.xls ]]; then
                     if [ -f "$loadfile" ]; then
                         cp "$loadfile" "$file"
                         echo "Inventory loaded from $loadfile."
@@ -248,7 +257,7 @@ save_load_inv_csv() {
                         echo "File '$loadfile' not found. Please try again."
                     fi
                 else
-                    echo "Invalid file type. Only .csv files are allowed"
+                    echo "Invalid file type. Only .csv or .xls files are allowed."
                 fi
             done
         else
@@ -270,8 +279,9 @@ inv_report() {
     done
     if [[ "$export_choice" =~ ^[Yy]$ ]]; then
         while true; do
-            read -p "Enter 1 for Text or 2 for CSV file: " file_type
-            if [ "$file_type" == "1" ] || [ "$file_type" == "2" ]; then
+            # Prompts user for file type to export to
+            read -p "Enter 1 for Text, 2 for CSV, or 3 for XLS file: " file_type
+            if [[ "$file_type" == "1" || "$file_type" == "2" || "$file_type" == "3" ]]; then
                 break
             else
                 echo "Invalid selection."
@@ -281,9 +291,12 @@ inv_report() {
         if [ "$file_type" == "1" ]; then
             column -s, -t < "$file" > "${filename}.txt"
             echo "Inventory exported to ${filename}.txt"
-        else
+        elif [ "$file_type" == "2" ]; then
             cp "$file" "${filename}.csv"
             echo "Inventory exported to ${filename}.csv"
+        else
+            cp "$file" "${filename}.xls"
+            echo "Inventory exported to ${filename}.xls"
         fi
     else
         echo "Export cancelled."
